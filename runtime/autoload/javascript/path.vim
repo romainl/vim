@@ -32,46 +32,38 @@
 " If none of the above works, the default 'path' should look like this:
 "   .,node_modules,,
 
-function! s:UpdatePathWithGit() abort
-    let job_branch = job_start(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], { "callback": "BranchHandler" })
-
-    function! BranchHandler(channel, msg) abort
-        let job_dirs = job_start(['git', 'ls-tree', '-d', '-z', '--name-only', a:msg], { "callback": "DirsHandler" })
-    endfunction
-
-    function! DirsHandler(channel, msg) abort
-        setlocal path-=,
-
-        let &l:path = &l:path .. ',' .. a:msg
-                    \ ->split("\x0")
-                    \ ->filter({ idx, val -> val !~ '^\.' })
-                    \ ->map({ idx, val -> val .. '/**' })
-                    \ ->join(',')
-
-        setlocal path-=node_modules
-        setlocal path+=node_modules
-        setlocal path+=,
-    endfunction
+function! javascript#path#GitBranchHandler(channel, msg) abort
+    let job_dirs = job_start(['git', 'ls-tree', '-d', '-z', '--name-only', a:msg], { "callback": "javascript#path#GitDirsHandler" })
 endfunction
 
-function! s:UpdatePathWithMercurial() abort
-    let job_hg = job_start(['hg', 'files', '-0'], { "callback": "HgHandler" })
+function! javascript#path#GitDirsHandler(channel, msg) abort
+    setlocal path-=,
 
-    function! HgHandler(channel, msg) abort
-        setlocal path-=,
+    let &l:path = &l:path .. ',' .. a:msg
+                \ ->split("\x0")
+                \ ->filter({ idx, val -> val !~ '^\.' })
+                \ ->map({ idx, val -> val .. '/**' })
+                \ ->join(',')
 
-        let &l:path = &l:path .. ',' .. a:msg
-                    \ ->split("\x0")
-                    \ ->filter({ idx, val -> val =~ '[\/\\]' })
-                    \ ->map({ idx, val -> substitute(val, '[\/\\].*', '', '') })
-                    \ ->uniq()
-                    \ ->map({ idx, val -> val .. '/**' })
-                    \ ->join(',')
+    setlocal path-=node_modules
+    setlocal path+=node_modules
+    setlocal path+=,
+endfunction
 
-        setlocal path-=node_modules
-        setlocal path+=node_modules
-        setlocal path+=,
-    endfunction
+function! javascript#path#HgDirsHandler(channel, msg) abort
+    setlocal path-=,
+
+    let &l:path = &l:path .. ',' .. a:msg
+                \ ->split("\x0")
+                \ ->filter({ idx, val -> val =~ '[\/\\]' })
+                \ ->map({ idx, val -> substitute(val, '[\/\\].*', '', '') })
+                \ ->uniq()
+                \ ->map({ idx, val -> val .. '/**' })
+                \ ->join(',')
+
+    setlocal path-=node_modules
+    setlocal path+=node_modules
+    setlocal path+=,
 endfunction
 
 function! s:UpdatePathWithJsconfig(fname) abort
@@ -87,6 +79,14 @@ function! s:UpdatePathWithJsconfig(fname) abort
     setlocal path-=node_modules
     setlocal path+=node_modules
     setlocal path+=,
+endfunction
+
+function! s:UpdatePathWithGit() abort
+    let job_branch = job_start(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], { "callback": "javascript#path#GitBranchHandler" })
+endfunction
+
+function! s:UpdatePathWithMercurial() abort
+    let job_hg = job_start(['hg', 'files', '-0'], { "callback": "javascript#path#HgDirsHandler" })
 endfunction
 
 function! javascript#path#Set() abort
