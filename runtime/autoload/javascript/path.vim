@@ -32,8 +32,37 @@
 " If none of the above works, the default 'path' should look like this:
 "   .,node_modules,,
 
+function! s:UpdatePathWithJsconfig(fname) abort
+    setlocal path-=,
+
+    let &l:path = &l:path .. ',' .. readfile(a:fname)
+                \ ->join()
+                \ ->json_decode()
+                \ ->get('compilerOptions', {})
+                \ ->get('baseUrl', '.')
+                \ ->substitute('/*$', '/**', '')
+
+    setlocal path-=node_modules
+    setlocal path+=node_modules
+    setlocal path+=,
+endfunction
+
+function! s:UpdatePathWithGit() abort
+    let cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+    let opt = { "callback": "javascript#path#GitBranchHandler" }
+    let job_branch = job_start(cmd, opt)
+endfunction
+
+function! s:UpdatePathWithMercurial() abort
+    let cmd = ['hg', 'files', '-0']
+    let opt = { "callback": "javascript#path#HgDirsHandler" }
+    let job_hg = job_start(cmd, opt)
+endfunction
+
 function! javascript#path#GitBranchHandler(channel, msg) abort
-    let job_dirs = job_start(['git', 'ls-tree', '-d', '-z', '--name-only', a:msg], { "callback": "javascript#path#GitDirsHandler" })
+    let cmd = ['git', 'ls-tree', '-d', '-z', '--name-only', a:msg]
+    let opt = { "callback": "javascript#path#GitDirsHandler" }
+    let job_dirs = job_start(cmd, opt)
 endfunction
 
 function! javascript#path#GitDirsHandler(channel, msg) abort
@@ -64,29 +93,6 @@ function! javascript#path#HgDirsHandler(channel, msg) abort
     setlocal path-=node_modules
     setlocal path+=node_modules
     setlocal path+=,
-endfunction
-
-function! s:UpdatePathWithJsconfig(fname) abort
-    setlocal path-=,
-
-    let &l:path = &l:path .. ',' .. readfile(a:fname)
-                \ ->join()
-                \ ->json_decode()
-                \ ->get('compilerOptions', {})
-                \ ->get('baseUrl', '.')
-                \ ->substitute('/*$', '/**', '')
-
-    setlocal path-=node_modules
-    setlocal path+=node_modules
-    setlocal path+=,
-endfunction
-
-function! s:UpdatePathWithGit() abort
-    let job_branch = job_start(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], { "callback": "javascript#path#GitBranchHandler" })
-endfunction
-
-function! s:UpdatePathWithMercurial() abort
-    let job_hg = job_start(['hg', 'files', '-0'], { "callback": "javascript#path#HgDirsHandler" })
 endfunction
 
 function! javascript#path#Set() abort
