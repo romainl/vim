@@ -41,14 +41,11 @@ setlocal suffixes+=.snap
 
 " Prepend node_modules/.bin to $PATH if applicable
 " Allows calling npm/yarn-installed CLI executables like eslint
-let s:bin = finddir('node_modules/.bin', '.;')->fnamemodify(':.')
-if len(s:bin) && $PATH !~ s:bin
-    let $PATH = s:bin .. ':' .. $PATH
+let s:bin_dir = finddir('node_modules/.bin', '.;')->fnamemodify(':p')
+if len(s:bin_dir) && $PATH !~ s:bin_dir
+    let $PATH = s:bin_dir .. ':' .. $PATH
 endif
-unlet s:bin
-
-" @ is a common alias in vue/webpack setups
-setlocal isfname+=@-@
+unlet s:bin_dir
 
 " Find explicit module imports. CommonJS/Node.js and ES2015 syntaxes are
 " supported:
