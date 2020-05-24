@@ -1,7 +1,7 @@
 " Vim filetype plugin file
 " Language:     Javascript
 " Maintainer:   Doug Kearns <dougkearns@gmail.com>
-" Last Change:  2020 May 19
+" Last Change:  2020 May 24
 " URL:          http://gus.gscit.monash.edu.au/~djkea2/vim/ftplugin/javascript.vim
 " Contributor:  Romain Lafourcade <romainlafourcade@gmail.com>
 
@@ -34,9 +34,10 @@ if has("gui_win32")
 endif
 
 " The following suffixes should be implied when resolving filenames
-setlocal suffixesadd+=.js,.jsx,.vue,.vuex,.es,.es6,.mjs,.json
+setlocal suffixesadd+=.js,.jsx,.es,.es6,.mjs,.vue,.vuex,.json
 
 " The following suffixes should have low priority
+"   .snap    jest snapshot
 setlocal suffixes+=.snap
 
 " Prepend node_modules/.bin to $PATH if applicable
@@ -47,31 +48,35 @@ if len(s:bin_dir) && $PATH !~ s:bin_dir
 endif
 unlet s:bin_dir
 
-" Find explicit module imports. CommonJS/Node.js and ES2015 syntaxes are
-" supported:
+" Find explicit module imports.
+" CommonJS/Node.js and ES2015 syntaxes are supported:
 "     var foo = require('foo');
 "     import foo from 'foo';
 setlocal include=^\\s*[^\/]\\+\\(from\\\|require(\\)\\s*['\"]\\ze
 
-" Try to set 'path' to a reasonable default value
+" Try to set 'path' to a contextually-relevant value
 call javascript#path#Set()
 
-" Set 'define' to a useful value
-let &l:define = '^\s*\('
-            \ .. '\(export\s\)*\(\w\+\s\)*\(var\|const\|let\|function\|class\|as\)\s'
-            \ .. '\|\(static\|get\s\|set\)\s'
-            \ .. '\|\(export\sdefault\s\)'
-            \ .. '\|\(async\sfunction\)\s'
-            \ .. '\|\(\ze\i\+([^)]*).*{$\)'
-            \ .. '\)'
+" Try to set 'formatprg' to a contextually-relevant value
+call javascript#formatprg#set()
 
-" placeholder
+" Matchit configuration
+let b:match_words = '\<function\>:\<return\>,'
+    \ .. '\<do\>:\<while\>,'
+    \ .. '\<switch\>:\<case\>:\<default\>,'
+    \ .. '\<if\>:\<else\>,'
+    \ .. '\<try\>:\<catch\>:\<finally\>,'
+    \ .. '<\(\w\+\):</\1>'
+
+" placeolder
 setlocal includeexpr&
 
 " placeholder
-setlocal formatprg&
+setlocal define&
 
 let b:undo_ftplugin = "setl fo< ofu< com< cms< sua< su< isf< inc< def< pa< inex< fp<"
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
+
+" vim: textwidth=78 tabstop=8 shiftwidth=4 softtabstop=4 expandtab

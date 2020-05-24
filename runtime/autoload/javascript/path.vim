@@ -1,42 +1,42 @@
 " Support script for JavaScript
 " Language:    JavaScript
 " Maintainer:  Romain Lafourcade <romainlafourcade@gmail.com>
-" Last Change: 2020 May 19
+" Last Change: 2020 May 24
 
 " Defining a generic 'path' for JavaScript is not easy because there is no
 " official standard and there are almost as many conventions as there are
 " teams.  Despite that sorry state of affairs, we are going to try to set
 " 'path' to a reasonable value that the user can adjust, if necessary.
-
+"
 " An ideal 'path' for JavaScript should contain:
 "   1. the directory of the current file
 "   2. any contextually relevant directory
-"   3. the node_modules directory
-"   4. the working directory
-
+"   3. the working directory
+"
 " In this implementation, we try a few ways to build a list of
 " interesting directories:
-"   - tracked directories from Git (async)
+"   - tracked directories from Git       (async)
 "   - tracked directories from Mercurial (async)
-"   - baseUrl from jsconfig.json
+"   - baseUrl from jsconfig.json         (sync)
 "
 " More methods may be explored later.
-
+"
 " If directories are found via these methods, 'path' should look like this:
-"   .,dir1/**,dir2/**,node_modules,,
-
+"   .,dir1/**,dir2/**,,
+"
 " If none of the above works, the default 'path' should look like this:
-"   .,node_modules,,
+"   .,,
 
 function! s:BuildPath(paths) abort
     if a:paths->len()
         setlocal path-=.
+        setlocal path-=/usrinclude
         setlocal path-=node_modules
         setlocal path-=,
         setlocal path-=**
 
         let local_paths = &l:path->split(',') + a:paths
-        let full_path = ['.'] + local_paths->sort()->uniq() + ['node_modules', ',']
+        let full_path = [ '.' ] + local_paths->sort()->uniq() + [ ',' ]
 
         let &l:path = full_path->join(',')
     endif
@@ -50,24 +50,24 @@ function! s:UpdatePathWithJsconfig(fname) abort
                 \ ->get('baseUrl', '.')
 
     if base_url != '.'
-        call s:BuildPath([base_url->substitute('/*$', '/**', '')])
+        call s:BuildPath([ base_url->substitute('/*$', '/**', '') ])
     endif
 endfunction
 
 function! s:UpdatePathWithGit() abort
-    let cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+    let cmd = [ 'git', 'rev-parse', '--abbrev-ref', 'HEAD' ]
     let opt = { "callback": "javascript#path#GitBranchHandler" }
     let job_branch = job_start(cmd, opt)
 endfunction
 
 function! s:UpdatePathWithMercurial() abort
-    let cmd = ['hg', 'files', '-0']
+    let cmd = [ 'hg', 'files', '-0' ]
     let opt = { "callback": "javascript#path#HgDirsHandler" }
     let job_hg = job_start(cmd, opt)
 endfunction
 
 function! javascript#path#GitBranchHandler(channel, msg) abort
-    let cmd = ['git', 'ls-tree', '-d', '-z', '--name-only', a:msg]
+    let cmd = [ 'git', 'ls-tree', '-d', '-z', '--name-only', a:msg ]
     let opt = { "callback": "javascript#path#GitDirsHandler" }
     let job_dirs = job_start(cmd, opt)
 endfunction
@@ -113,3 +113,5 @@ function! javascript#path#Set() abort
         call <SID>UpdatePathWithMercurial()
     endif
 endfunction
+
+" vim: textwidth=78 tabstop=8 shiftwidth=4 softtabstop=4 expandtab
